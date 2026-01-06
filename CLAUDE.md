@@ -45,16 +45,41 @@ datapraktis/
 │   └── web/                   # Next.js frontend
 │       ├── src/app/           # App Router pages
 │       │   ├── (auth)/        # Login, register
-│       │   ├── api/           # API routes
-│       │   └── ...
+│       │   ├── (dashboard)/   # Protected dashboard pages
+│       │   │   ├── dashboard/ # Main dashboard
+│       │   │   ├── projects/  # Client projects list + creation wizard
+│       │   │   ├── browse/    # Analyst project discovery
+│       │   │   ├── analyst/   # Analyst profile management
+│       │   │   └── messages/  # Conversations
+│       │   └── api/           # API routes
 │       ├── src/components/    # React components
-│       │   └── ui/            # shadcn/ui components
+│       │   ├── ui/            # shadcn/ui components
+│       │   └── dashboard/     # Dashboard-specific components
 │       └── src/lib/           # Utilities, auth config
 │
 ├── packages/
 │   ├── db/                    # Prisma schema & client
-│   │   └── prisma/schema.prisma
+│   │   └── prisma/
+│   │       ├── schema.prisma
+│   │       └── seed.ts        # Template seed data
 │   └── types/                 # Shared TypeScript types
+```
+
+## Key Pages
+
+- `/` - Landing page (public)
+- `/login`, `/register` - Authentication
+- `/dashboard` - Role-based dashboard (client vs analyst)
+- `/projects` - Client's projects list
+- `/projects/new` - Multi-step project creation wizard
+- `/browse` - Analyst discovers available projects
+- `/analyst/profile` - Analyst profile editor
+
+## Seeding Database
+
+```bash
+npm run db:push                # First push schema
+npx tsx packages/db/prisma/seed.ts   # Then seed templates
 ```
 
 ## Architecture
