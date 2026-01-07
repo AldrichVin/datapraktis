@@ -76,17 +76,29 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const view = searchParams.get('view'); // 'active' or 'available' for analysts
 
     const where: Record<string, unknown> = {};
 
-    // Clients see their own projects, analysts see open projects
+    // Clients see their own projects
     if (session.user.role === 'CLIENT') {
       where.clientId = session.user.id;
     } else if (session.user.role === 'ANALYST') {
-      where.status = 'OPEN';
+      // Analysts can view either active (hired) projects or available (open) projects
+      if (view === 'active') {
+        where.hiredAnalystId = session.user.id;
+        // Show all non-open statuses for active projects
+        if (!status) {
+          where.status = { in: ['IN_PROGRESS', 'REVIEW', 'COMPLETED'] };
+        }
+      } else {
+        // Default: show open projects available for bidding
+        where.status = 'OPEN';
+      }
     }
 
-    if (status) {
+    // Allow status filter override (but not for default analyst view)
+    if (status && !(session.user.role === 'ANALYST' && view !== 'active')) {
       where.status = status;
     }
 

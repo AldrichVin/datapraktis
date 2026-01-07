@@ -19,10 +19,12 @@ import {
   Loader2,
   MessageSquare,
   Star,
+  Upload,
   User,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FileUpload } from '@/components/files/file-upload';
 
 interface Proposal {
   id: string;
@@ -481,6 +483,39 @@ export default function ProjectDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* File Upload (for client) */}
+          {project.isClient && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Upload File
+                </CardTitle>
+                <CardDescription>
+                  Upload data atau dokumen untuk proyek ini
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUpload
+                  projectId={project.id}
+                  accessLevel="PUBLIC_PREVIEW"
+                  onUploadComplete={(file) => {
+                    toast({
+                      title: 'File berhasil diupload',
+                      description: file.originalName,
+                    });
+                    // Refresh project to update file count
+                    fetch(`/api/projects/${projectId}`)
+                      .then((res) => res.json())
+                      .then((data) => {
+                        if (data.success) setProject(data.data);
+                      });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Client Card (for hired analyst) */}
           {project.isHiredAnalyst && (

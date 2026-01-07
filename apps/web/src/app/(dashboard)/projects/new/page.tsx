@@ -425,21 +425,19 @@ export default function NewProjectPage() {
               <CardHeader>
                 <CardTitle className="text-lg">Upload File (Opsional)</CardTitle>
                 <CardDescription>
-                  Upload data Anda sekarang untuk membantu analyst memberikan proposal lebih akurat
+                  Upload data Anda untuk membantu analyst memberikan proposal lebih akurat
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/50">
                   <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Drag & drop file atau klik untuk upload
+                  <p className="text-sm font-medium mb-2">
+                    File dapat diupload setelah proyek dibuat
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Excel, CSV, PDF (maks. 50MB)
+                    Setelah proyek dipublikasikan, Anda dapat mengupload file data (Excel, CSV, PDF, dll.)
+                    dari halaman detail proyek.
                   </p>
-                  <Button variant="outline" className="mt-4" disabled>
-                    Pilih File (Coming Soon)
-                  </Button>
                 </div>
               </CardContent>
             </Card>

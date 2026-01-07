@@ -6,6 +6,73 @@ import { prisma } from '@datapraktis/db';
 import bcrypt from 'bcryptjs';
 import type { Adapter } from 'next-auth/adapters';
 
+// Only include Google provider if credentials are properly configured
+const providers: NextAuthOptions['providers'] = [];
+
+if (
+  process.env.GOOGLE_CLIENT_ID &&
+  process.env.GOOGLE_CLIENT_SECRET &&
+  !process.env.GOOGLE_CLIENT_ID.includes('your-') &&
+  !process.env.GOOGLE_CLIENT_SECRET.includes('your-')
+) {
+  providers.push(
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          role: 'CLIENT',
+        };
+      },
+    })
+  );
+}
+
+providers.push(
+  CredentialsProvider({
+    name: 'credentials',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: 'Password', type: 'password' },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) {
+        throw new Error('Email dan password diperlukan');
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email: credentials.email },
+        include: { analystProfile: true },
+      });
+
+      if (!user || !user.passwordHash) {
+        throw new Error('Email atau password salah');
+      }
+
+      const isPasswordValid = await bcrypt.compare(
+        credentials.password,
+        user.passwordHash
+      );
+
+      if (!isPasswordValid) {
+        throw new Error('Email atau password salah');
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+        role: user.role,
+      };
+    },
+  })
+);
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
@@ -15,59 +82,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
     error: '/login',
   },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          role: 'CLIENT', // Default role for Google sign-ups
-        };
-      },
-    }),
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email dan password diperlukan');
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: { analystProfile: true },
-        });
-
-        if (!user || !user.passwordHash) {
-          throw new Error('Email atau password salah');
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        );
-
-        if (!isPasswordValid) {
-          throw new Error('Email atau password salah');
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
-        };
-      },
-    }),
-  ],
+  providers,
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {

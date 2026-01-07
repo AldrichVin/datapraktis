@@ -6,7 +6,9 @@
       "Bash(npm ls:*)",
       "Bash(npm run db:generate:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(cd C:UsersaldriDownloadsClaude\" \"Code\" \"ProjectsProject1)",
+      "Bash(ls:*)"
     ]
   }
 }
