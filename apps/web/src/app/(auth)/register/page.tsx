@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
@@ -27,7 +27,7 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
-export default function RegisterPage() {
+function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -281,5 +281,13 @@ export default function RegisterPage() {
         </p>
       </CardFooter>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <RegisterFormContent />
+    </Suspense>
   );
 }

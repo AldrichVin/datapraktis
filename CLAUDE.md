@@ -72,8 +72,20 @@ datapraktis/
 - `/dashboard` - Role-based dashboard (client vs analyst)
 - `/projects` - Client's projects list
 - `/projects/new` - Multi-step project creation wizard
+- `/projects/[id]` - Project detail with proposals management (client)
 - `/browse` - Analyst discovers available projects
+- `/browse/[id]` - Project detail with proposal submission (analyst)
+- `/workspace/[id]` - Active project workspace with milestone management
+- `/messages` - In-app messaging/conversations
 - `/analyst/profile` - Analyst profile editor
+- `/analyst/earnings` - Earnings and withdrawal management
+
+### Admin Pages (require ADMIN role)
+- `/admin` - Admin dashboard with platform overview
+- `/admin/users` - User management with filters and search
+- `/admin/projects` - All projects management
+- `/admin/withdrawals` - Withdrawal approval workflow
+- `/admin/analytics` - Platform metrics and analytics
 
 ## Seeding Database
 
@@ -141,16 +153,62 @@ Using shadcn/ui pattern - components in `src/components/ui/` with:
 
 All amounts in IDR (Indonesian Rupiah) stored as integers (no decimals). Use `formatCurrency()` from `@/lib/utils` for display.
 
+## API Routes
+
+### Projects
+- `GET/POST /api/projects` - List/create projects
+- `GET/PATCH /api/projects/[id]` - Get/update project
+- `POST/PATCH /api/projects/[id]/proposals` - Submit/manage proposals
+
+### Conversations
+- `GET /api/conversations` - List user's conversations
+- `GET /api/conversations/[id]` - Get conversation with messages
+- `POST/GET /api/conversations/[id]/messages` - Send/fetch messages
+
+### Milestones
+- `GET/PATCH /api/milestones/[id]` - Get/update milestone (submit, approve, request_revision)
+
+### Payments
+- `POST /api/payments/create` - Create Midtrans payment
+- `POST /api/payments/webhook` - Midtrans webhook handler
+- `POST /api/payments/release` - Release escrow to analyst
+
+### Analyst
+- `GET/PUT /api/analyst/profile` - Manage analyst profile
+- `GET/POST /api/analyst/withdrawals` - Balance and withdrawal requests
+
+### Reviews
+- `GET/POST /api/reviews` - Get/create reviews
+
+### Files
+- `POST /api/files/upload-url` - Get presigned S3 upload URL
+- `GET/DELETE /api/files/[id]` - Download/delete file
+
+### Admin
+- `GET /api/admin/stats` - Platform statistics
+- `GET /api/admin/users` - List users with pagination
+- `GET /api/admin/projects` - List all projects
+- `GET/PATCH /api/admin/withdrawals` - Manage withdrawals
+- `GET /api/admin/analytics` - Analytics data
+
 ## Environment Variables
 
 Required in `apps/web/.env`:
 
 ```
-DATABASE_URL          # PostgreSQL connection string
-NEXTAUTH_URL          # http://localhost:3000 for dev
-NEXTAUTH_SECRET       # Random 32+ char secret
-GOOGLE_CLIENT_ID      # Optional for Google OAuth
-GOOGLE_CLIENT_SECRET  # Optional for Google OAuth
+DATABASE_URL              # PostgreSQL connection string
+NEXTAUTH_URL              # http://localhost:3000 for dev
+NEXTAUTH_SECRET           # Random 32+ char secret
+GOOGLE_CLIENT_ID          # Optional for Google OAuth
+GOOGLE_CLIENT_SECRET      # Optional for Google OAuth
+MIDTRANS_SERVER_KEY       # Midtrans server key (sandbox or production)
+NEXT_PUBLIC_MIDTRANS_CLIENT_KEY  # Midtrans client key for frontend
+
+# AWS S3 for file storage
+AWS_REGION                # ap-southeast-1
+AWS_ACCESS_KEY_ID         # IAM access key
+AWS_SECRET_ACCESS_KEY     # IAM secret key
+AWS_S3_BUCKET             # S3 bucket name (e.g., datapraktis-files)
 ```
 
 ## Development Notes

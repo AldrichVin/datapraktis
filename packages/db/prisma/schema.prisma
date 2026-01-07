@@ -83,6 +83,7 @@ model User {
   conversations   ConversationParticipant[]
   accounts        Account[]
   sessions        Session[]
+  withdrawals     Withdrawal[]     @relation("AnalystWithdrawals")
 
   @@index([email])
   @@index([role])
@@ -375,6 +376,7 @@ model Message {
 
   content        String   @db.Text
   attachments    Json?    // Array of file references
+  read           Boolean  @default(false)
 
   createdAt      DateTime @default(now())
 
@@ -425,6 +427,7 @@ model Transaction {
 model Withdrawal {
   id              String   @id @default(cuid())
   analystId       String
+  analyst         User     @relation("AnalystWithdrawals", fields: [analystId], references: [id])
 
   amount          Int      // In IDR
   fee             Int      // Withdrawal fee if any

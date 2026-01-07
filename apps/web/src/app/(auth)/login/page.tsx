@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
@@ -21,7 +21,7 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -186,5 +186,13 @@ export default function LoginPage() {
         </p>
       </CardFooter>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

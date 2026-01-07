@@ -14,6 +14,7 @@ import {
   Settings,
   User,
   Plus,
+  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -52,6 +53,12 @@ const navItems: NavItem[] = [
     title: 'Pesan',
     href: '/messages',
     icon: MessageSquare,
+  },
+  {
+    title: 'Pendapatan',
+    href: '/analyst/earnings',
+    icon: Wallet,
+    roles: ['ANALYST'],
   },
   {
     title: 'Profil',
