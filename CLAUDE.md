@@ -114,13 +114,36 @@ npx tsx packages/db/prisma/seed.ts   # Then seed templates
 3. JWT-based sessions via NextAuth
 4. Role-based access in middleware and API routes
 
-### Payment Flow (Midtrans)
+### Payment Flow (Midtrans) - Professional Marketplace Standard
 
-1. Client hires analyst → frontend calls API to create transaction
-2. API creates Midtrans order → returns payment token
-3. Client pays via Midtrans popup (bank transfer, e-wallet)
-4. Midtrans webhook updates transaction status to ESCROWED
-5. Client approves milestone → funds released (minus 10% commission)
+The platform follows Upwork/Toptal-style professional workflow:
+
+**Pre-funded Milestones:**
+1. Client accepts proposal → prompted to fund first milestone
+2. Client pays via Midtrans (bank transfer, e-wallet, etc.)
+3. Midtrans webhook updates transaction to ESCROWED, milestone to IN_PROGRESS
+4. Analyst can now start work (funds secured in escrow)
+
+**14-Day Auto-Release Timer:**
+1. Analyst submits milestone → `autoReleaseAt` set to 14 days
+2. Client has 14 days to: Approve, Request Revision, or Dispute
+3. If no action → Cron job auto-approves and releases funds
+4. Timer resets on revision request
+
+**5-Day Security Hold:**
+1. When payment released → `availableAt` set to 5 days from now
+2. Funds shown as "Security Hold" in earnings page
+3. After 5 days → funds become withdrawable
+4. Protects against fraud/chargebacks
+
+**Milestone Statuses:**
+- `PENDING` - Awaiting funding
+- `FUNDED` - Client paid, awaiting work start
+- `IN_PROGRESS` - Analyst working
+- `SUBMITTED` - Awaiting client review (14-day timer active)
+- `REVISION_REQUESTED` - Client requested changes
+- `APPROVED` - Complete, payment released
+- `DISPUTED` - In dispute resolution
 
 ## Key Patterns
 
@@ -167,11 +190,18 @@ All amounts in IDR (Indonesian Rupiah) stored as integers (no decimals). Use `fo
 
 ### Milestones
 - `GET/PATCH /api/milestones/[id]` - Get/update milestone (submit, approve, request_revision)
+  - Submit sets `autoReleaseAt` to 14 days
+  - Approve/revision clears `autoReleaseAt`
 
 ### Payments
 - `POST /api/payments/create` - Create Midtrans payment
-- `POST /api/payments/webhook` - Midtrans webhook handler
-- `POST /api/payments/release` - Release escrow to analyst
+- `POST /api/payments/webhook` - Midtrans webhook handler (sets `fundedAt`)
+- `POST /api/payments/release` - Release escrow to analyst (sets 5-day `availableAt`)
+
+### Cron Jobs
+- `GET/POST /api/cron/auto-release` - Auto-release milestones past 14-day deadline
+  - Should be called hourly by scheduler (Vercel Cron, etc.)
+  - Set `CRON_SECRET` env var for production security
 
 ### Analyst
 - `GET/PUT /api/analyst/profile` - Manage analyst profile
@@ -209,7 +239,18 @@ AWS_REGION                # ap-southeast-1
 AWS_ACCESS_KEY_ID         # IAM access key
 AWS_SECRET_ACCESS_KEY     # IAM secret key
 AWS_S3_BUCKET             # S3 bucket name (e.g., datapraktis-files)
+
+# Cron Jobs (production)
+CRON_SECRET               # Secret for authenticating cron job requests
 ```
+
+## Workspace Components
+
+Located in `apps/web/src/components/workspace/`:
+
+- **FundMilestoneModal** - Payment prompt shown when accepting proposal
+- **MilestoneStatusBadge** - Visual status indicators (PENDING, FUNDED, IN_PROGRESS, etc.)
+- **AutoReleaseCountdown** - Shows 14-day countdown timer for client review
 
 ## Development Notes
 
