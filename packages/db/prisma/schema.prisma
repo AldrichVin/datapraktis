@@ -35,6 +35,7 @@ enum ProposalStatus {
 
 enum MilestoneStatus {
   PENDING
+  FUNDED           // NEW: Client has funded, waiting for work to start
   IN_PROGRESS
   SUBMITTED
   REVISION_REQUESTED
@@ -225,6 +226,10 @@ model Project {
   hiredAt         DateTime?
   completedAt     DateTime?
 
+  // Contract Agreement (NEW)
+  contractAcceptedByClientAt  DateTime?
+  contractAcceptedByAnalystAt DateTime?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -316,6 +321,10 @@ model Milestone {
   sortOrder       Int             @default(0)
 
   status          MilestoneStatus @default(PENDING)
+
+  // Funding & Payment Protection (NEW)
+  fundedAt        DateTime?       // When client funded this milestone
+  autoReleaseAt   DateTime?       // Auto-release countdown (14 days after submit)
 
   // Revision tracking
   revisionCount   Int             @default(0)
@@ -412,6 +421,7 @@ model Transaction {
   escrowedAt      DateTime?
   releasedAt      DateTime?
   refundedAt      DateTime?
+  availableAt     DateTime?         // NEW: When funds become available for withdrawal (5 days after release)
 
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
