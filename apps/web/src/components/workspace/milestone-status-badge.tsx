@@ -5,7 +5,6 @@ import {
   Clock,
   Loader2,
   AlertCircle,
-  Wallet,
   Send,
   RotateCcw,
 } from 'lucide-react';
@@ -23,7 +22,6 @@ type MilestoneStatus =
 
 interface MilestoneStatusBadgeProps {
   status: MilestoneStatus;
-  fundedAt?: Date | string | null;
   className?: string;
 }
 
@@ -37,16 +35,16 @@ const statusConfig: Record<
   }
 > = {
   PENDING: {
-    label: 'Menunggu Dana',
+    label: 'Belum Dimulai',
     variant: 'outline',
     icon: Clock,
-    description: 'Milestone belum didanai',
+    description: 'Milestone menunggu giliran',
   },
   FUNDED: {
-    label: 'Terdanai',
-    variant: 'success',
-    icon: Wallet,
-    description: 'Dana sudah di escrow, siap dikerjakan',
+    label: 'Siap Dikerjakan',
+    variant: 'secondary',
+    icon: Clock,
+    description: 'Milestone siap dikerjakan',
   },
   IN_PROGRESS: {
     label: 'Dikerjakan',
@@ -70,7 +68,7 @@ const statusConfig: Record<
     label: 'Selesai',
     variant: 'success',
     icon: CheckCircle2,
-    description: 'Milestone disetujui & dana dilepas',
+    description: 'Milestone disetujui',
   },
   DISPUTED: {
     label: 'Sengketa',
@@ -82,12 +80,9 @@ const statusConfig: Record<
 
 export function MilestoneStatusBadge({
   status,
-  fundedAt,
   className,
 }: MilestoneStatusBadgeProps) {
-  // If status is IN_PROGRESS and has fundedAt, it was funded first
-  const effectiveStatus = status;
-  const config = statusConfig[effectiveStatus];
+  const config = statusConfig[status];
   const Icon = config.icon;
 
   return (
@@ -103,9 +98,6 @@ export function MilestoneStatusBadge({
         )}
       />
       {config.label}
-      {fundedAt && status === 'IN_PROGRESS' && (
-        <CheckCircle2 className="h-3 w-3 text-green-600" title="Terdanai" />
-      )}
     </Badge>
   );
 }
@@ -134,7 +126,6 @@ export function MilestoneStatusDot({
   return (
     <Icon
       className={cn('h-4 w-4', colorClasses[status], className)}
-      title={config.label}
     />
   );
 }
