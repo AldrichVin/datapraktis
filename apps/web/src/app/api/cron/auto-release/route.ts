@@ -33,11 +33,7 @@ export async function GET(request: Request) {
             },
           },
         },
-        transactions: {
-          where: {
-            status: 'ESCROWED',
-          },
-        },
+        transaction: true,
       },
     });
 
@@ -67,9 +63,9 @@ export async function GET(request: Request) {
           const availableAt = new Date();
           availableAt.setDate(availableAt.getDate() + 5);
 
-          for (const transaction of milestone.transactions) {
+          if (milestone.transaction && milestone.transaction.status === 'ESCROWED') {
             await tx.transaction.update({
-              where: { id: transaction.id },
+              where: { id: milestone.transaction.id },
               data: {
                 status: 'RELEASED',
                 releasedAt: now,
@@ -79,11 +75,8 @@ export async function GET(request: Request) {
           }
 
           // 3. Update analyst balance
-          if (milestone.project.hiredAnalystId) {
-            const totalAmount = milestone.transactions.reduce(
-              (sum, t) => sum + t.amount,
-              0
-            );
+          if (milestone.project.hiredAnalystId && milestone.transaction) {
+            const totalAmount = milestone.transaction.amount;
             const commission = Math.floor(totalAmount * 0.1); // 10% commission
             const netAmount = totalAmount - commission;
 
