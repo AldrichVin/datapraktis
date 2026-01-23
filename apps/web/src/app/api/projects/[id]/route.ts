@@ -68,6 +68,19 @@ export async function GET(
         },
         milestones: {
           orderBy: { sortOrder: 'asc' },
+          include: {
+            files: {
+              where: { deletedAt: null },
+              select: {
+                id: true,
+                originalName: true,
+                mimeType: true,
+                size: true,
+                createdAt: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
+          },
         },
         _count: {
           select: {

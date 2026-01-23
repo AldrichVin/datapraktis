@@ -35,6 +35,15 @@ import {
 import { ReviewForm } from '@/components/reviews/review-form';
 import { ReviewList } from '@/components/reviews/review-list';
 import { TemplateAnswersDisplay } from '@/components/projects/template-answers-display';
+import { FileUpload } from '@/components/files/file-upload';
+
+interface MilestoneFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
 
 interface Milestone {
   id: string;
@@ -48,6 +57,7 @@ interface Milestone {
   maxRevisions: number;
   submittedAt: string | null;
   approvedAt: string | null;
+  files?: MilestoneFile[];
 }
 
 interface TemplateQuestion {
@@ -208,6 +218,28 @@ export default function WorkspacePage() {
       });
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDownloadFile = async (fileId: string, fileName: string) => {
+    try {
+      const res = await fetch(`/api/files/${fileId}`);
+      const data = await res.json();
+      if (data.success && data.data.downloadUrl) {
+        window.open(data.data.downloadUrl, '_blank');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Gagal mengunduh file',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -392,17 +424,80 @@ export default function WorkspacePage() {
                       )}
                     </div>
 
+                    {/* Uploaded Files */}
+                    {milestone.files && milestone.files.length > 0 && (
+                      <div className="pt-2">
+                        <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          File Deliverable ({milestone.files.length})
+                        </h5>
+                        <div className="space-y-2">
+                          {milestone.files.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 border rounded-lg bg-background"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    {file.originalName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadFile(file.id, file.originalName)}
+                              >
+                                Download
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Analyst Actions */}
                     {project.isHiredAnalyst && (
                       <>
                         {(milestone.status === 'IN_PROGRESS' ||
                           milestone.status === 'REVISION_REQUESTED') && (
-                          <div className="flex gap-2 pt-2">
+                          <div className="space-y-4 pt-2">
+                            {/* File Upload for Deliverables */}
+                            <div className="border rounded-lg p-4 bg-muted/30">
+                              <h5 className="text-sm font-medium mb-3 flex items-center gap-2">
+                                <Upload className="h-4 w-4" />
+                                Upload Deliverable
+                              </h5>
+                              <FileUpload
+                                projectId={project.id}
+                                milestoneId={milestone.id}
+                                accessLevel="DELIVERABLE"
+                                onUploadComplete={async (file) => {
+                                  toast({
+                                    title: 'File berhasil diupload',
+                                    description: file.originalName,
+                                  });
+                                  // Refresh project data to show new file
+                                  const refreshRes = await fetch(`/api/projects/${projectId}`);
+                                  const refreshData = await refreshRes.json();
+                                  if (refreshData.success) {
+                                    setProject(refreshData.data);
+                                  }
+                                }}
+                              />
+                            </div>
+
                             <Button
                               onClick={() =>
                                 handleMilestoneAction(milestone.id, 'submit')
                               }
                               disabled={actionLoading === milestone.id}
+                              className="w-full sm:w-auto"
                             >
                               {actionLoading === milestone.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
