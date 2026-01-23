@@ -21,6 +21,8 @@ import {
   Sparkles,
   TrendingUp,
   Upload,
+  X,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +79,7 @@ export default function NewProjectPage() {
   const [budgetMin, setBudgetMin] = useState<number>(0);
   const [budgetMax, setBudgetMax] = useState<number>(0);
   const [deadline, setDeadline] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   // Fetch templates
   useEffect(() => {
@@ -120,6 +123,70 @@ export default function NewProjectPage() {
       }
       return { ...prev, [questionId]: [...current, value] };
     });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    const validFiles: File[] = [];
+
+    Array.from(files).forEach((file) => {
+      if (file.size > maxSize) {
+        toast({
+          title: 'File terlalu besar',
+          description: `${file.name} melebihi batas 100MB`,
+          variant: 'destructive',
+        });
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    setPendingFiles((prev) => [...prev, ...validFiles]);
+    e.target.value = ''; // Reset input
+  };
+
+  const removeFile = (index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const uploadFileToProject = async (projectId: string, file: File) => {
+    // Get presigned URL
+    const urlRes = await fetch('/api/files/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId,
+        filename: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        accessLevel: 'PUBLIC_PREVIEW',
+      }),
+    });
+
+    const urlData = await urlRes.json();
+    if (!urlRes.ok) {
+      throw new Error(urlData.error || 'Failed to get upload URL');
+    }
+
+    // Upload to S3
+    const uploadRes = await fetch(urlData.data.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error('Upload failed');
+    }
   };
 
   const canProceed = () => {
@@ -170,12 +237,34 @@ export default function NewProjectPage() {
         throw new Error(data.error || 'Failed to create project');
       }
 
+      const projectId = data.data.id;
+
+      // Upload pending files
+      if (pendingFiles.length > 0) {
+        toast({
+          title: 'Mengupload file...',
+          description: `Mengupload ${pendingFiles.length} file`,
+        });
+
+        for (const file of pendingFiles) {
+          try {
+            await uploadFileToProject(projectId, file);
+          } catch (error) {
+            toast({
+              title: 'Gagal upload file',
+              description: `${file.name}: ${error instanceof Error ? error.message : 'Error'}`,
+              variant: 'destructive',
+            });
+          }
+        }
+      }
+
       toast({
         title: 'Proyek berhasil dibuat!',
         description: 'Analyst akan segera mengajukan proposal',
       });
 
-      router.push(`/projects/${data.data.id}`);
+      router.push(`/projects/${projectId}`);
     } catch (error) {
       toast({
         title: 'Error',
@@ -428,17 +517,52 @@ export default function NewProjectPage() {
                   Upload data Anda untuk membantu analyst memberikan proposal lebih akurat
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/50">
-                  <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm font-medium mb-2">
-                    File dapat diupload setelah proyek dibuat
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Setelah proyek dipublikasikan, Anda dapat mengupload file data (Excel, CSV, PDF, dll.)
-                    dari halaman detail proyek.
-                  </p>
-                </div>
+              <CardContent className="space-y-4">
+                <label className="block">
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors">
+                    <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-sm font-medium mb-2">
+                      Klik untuk memilih file
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      PDF, Excel, Word, CSV, gambar, atau arsip. Maks 100MB per file.
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.json,.xml,.zip,.rar,.gz"
+                  />
+                </label>
+
+                {pendingFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">File yang akan diupload:</p>
+                    {pendingFiles.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="flex items-center gap-3 p-3 border rounded-lg"
+                      >
+                        <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(file.size)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -491,6 +615,21 @@ export default function NewProjectPage() {
                     ))}
                   </ul>
                 </div>
+
+                {pendingFiles.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">File yang akan diupload</h4>
+                    <ul className="space-y-1">
+                      {pendingFiles.map((file, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span>{file.name}</span>
+                          <span className="text-muted-foreground">({formatFileSize(file.size)})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
