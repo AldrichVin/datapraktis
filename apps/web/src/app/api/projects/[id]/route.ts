@@ -69,7 +69,7 @@ export async function GET(
         milestones: {
           orderBy: { sortOrder: 'asc' },
           include: {
-            files: {
+            deliverables: {
               where: { deletedAt: null },
               select: {
                 id: true,
@@ -116,10 +116,18 @@ export async function GET(
       );
     }
 
+    // Transform milestones to rename deliverables to files for frontend consistency
+    const milestonesWithFiles = project.milestones.map((milestone) => ({
+      ...milestone,
+      files: (milestone as any).deliverables || [],
+      deliverables: undefined,
+    }));
+
     return NextResponse.json({
       success: true,
       data: {
         ...project,
+        milestones: milestonesWithFiles,
         proposals: filteredProposals,
         isClient,
         isHiredAnalyst,
