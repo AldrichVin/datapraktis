@@ -20,14 +20,12 @@ import {
   MessageSquare,
   Star,
   Upload,
-  User,
-  Wallet,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FileUpload } from '@/components/files/file-upload';
-import { FundMilestoneModal } from '@/components/workspace/fund-milestone-modal';
 import { MilestoneStatusBadge } from '@/components/workspace/milestone-status-badge';
+import { TemplateAnswersDisplay } from '@/components/projects/template-answers-display';
 
 interface Proposal {
   id: string;
@@ -63,7 +61,14 @@ interface Milestone {
   status: string;
   dueDate: string | null;
   sortOrder: number;
-  fundedAt: string | null;
+}
+
+interface TemplateQuestion {
+  id: string;
+  type: 'select' | 'multiselect' | 'text' | 'textarea';
+  label: string;
+  options?: Array<{ value: string; label: string }>;
+  required?: boolean;
 }
 
 interface Project {
@@ -80,6 +85,9 @@ interface Project {
   template: {
     name: string;
     slug: string;
+    icon?: string;
+    questions?: TemplateQuestion[];
+    exampleDeliverables?: Array<{ title: string; description: string }>;
   } | null;
   client: {
     id: string;
@@ -131,14 +139,6 @@ export default function ProjectDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Funding modal state
-  const [fundingModalOpen, setFundingModalOpen] = useState(false);
-  const [pendingFunding, setPendingFunding] = useState<{
-    milestoneId: string;
-    milestoneAmount: number;
-    milestoneName: string;
-  } | null>(null);
-
   const projectId = params.id as string;
 
   useEffect(() => {
@@ -183,22 +183,17 @@ export default function ProjectDetailPage() {
         throw new Error(data.error || 'Failed to update proposal');
       }
 
-      // If proposal accepted and requires funding, open the funding modal
-      if (action === 'accept' && data.requiresFunding) {
-        setPendingFunding({
-          milestoneId: data.firstMilestoneId,
-          milestoneAmount: data.firstMilestoneAmount,
-          milestoneName: 'Milestone 1',
-        });
-        setFundingModalOpen(true);
-
+      if (action === 'accept') {
         toast({
           title: 'Proposal Diterima!',
-          description: 'Silakan danai milestone pertama untuk memulai proyek.',
+          description: data.message,
         });
+        // Redirect to workspace since work can start immediately
+        router.push(`/workspace/${data.projectId}`);
+        return;
       } else {
         toast({
-          title: action === 'accept' ? 'Proposal Diterima!' : 'Proposal Ditolak',
+          title: 'Proposal Ditolak',
           description: data.message,
         });
       }
@@ -285,6 +280,16 @@ export default function ProjectDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Template Answers */}
+          {project.template?.questions && project.templateAnswers && (
+            <TemplateAnswersDisplay
+              templateName={project.template.name}
+              templateQuestions={project.template.questions}
+              answers={project.templateAnswers}
+              defaultExpanded={true}
+            />
+          )}
+
           {/* Milestones (if in progress) */}
           {project.status === 'IN_PROGRESS' && project.milestones.length > 0 && (
             <Card>
@@ -324,7 +329,6 @@ export default function ProjectDetailPage() {
                           <h4 className="font-medium">{milestone.title}</h4>
                           <MilestoneStatusBadge
                             status={milestone.status as 'PENDING' | 'FUNDED' | 'IN_PROGRESS' | 'SUBMITTED' | 'REVISION_REQUESTED' | 'APPROVED' | 'DISPUTED'}
-                            fundedAt={milestone.fundedAt}
                           />
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -569,18 +573,6 @@ export default function ProjectDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Funding Modal */}
-      {pendingFunding && (
-        <FundMilestoneModal
-          open={fundingModalOpen}
-          onOpenChange={setFundingModalOpen}
-          milestoneId={pendingFunding.milestoneId}
-          milestoneAmount={pendingFunding.milestoneAmount}
-          projectId={projectId}
-          milestoneName={pendingFunding.milestoneName}
-        />
-      )}
     </div>
   );
 }

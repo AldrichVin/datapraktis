@@ -187,8 +187,8 @@ export async function PATCH(
     }
 
     if (action === 'accept') {
-      // Accept this proposal, reject others, but require funding before work starts
-      const result = await prisma.$transaction(async (tx) => {
+      // Accept this proposal, reject others, and start work immediately
+      await prisma.$transaction(async (tx) => {
         // Update accepted proposal
         await tx.proposal.update({
           where: { id: proposalId },
@@ -205,7 +205,7 @@ export async function PATCH(
           data: { status: 'REJECTED' },
         });
 
-        // Update project - status stays IN_PROGRESS but work doesn't start until funded
+        // Update project status to IN_PROGRESS
         await tx.project.update({
           where: { id: params.id },
           data: {
@@ -216,7 +216,7 @@ export async function PATCH(
         });
 
         // Create milestones from proposal
-        // IMPORTANT: First milestone is PENDING (not IN_PROGRESS) until funded
+        // First milestone starts as IN_PROGRESS so analyst can begin work immediately
         const milestones = proposal.proposedMilestones as Array<{
           title: string;
           description: string;
@@ -224,12 +224,9 @@ export async function PATCH(
           dueDate?: string;
         }>;
 
-        let firstMilestoneId: string | null = null;
-        let firstMilestoneAmount = 0;
-
         for (let i = 0; i < milestones.length; i++) {
           const milestone = milestones[i];
-          const created = await tx.milestone.create({
+          await tx.milestone.create({
             data: {
               projectId: params.id,
               title: milestone.title,
@@ -237,14 +234,9 @@ export async function PATCH(
               amount: milestone.amount,
               dueDate: milestone.dueDate ? new Date(milestone.dueDate) : null,
               sortOrder: i,
-              status: 'PENDING', // All milestones start as PENDING - funded ones change to FUNDED
+              status: i === 0 ? 'IN_PROGRESS' : 'PENDING', // First milestone starts immediately
             },
           });
-
-          if (i === 0) {
-            firstMilestoneId = created.id;
-            firstMilestoneAmount = created.amount;
-          }
         }
 
         // Create conversation for client and analyst
@@ -257,18 +249,20 @@ export async function PATCH(
                 { userId: proposal.analystId },
               ],
             },
+            messages: {
+              create: {
+                senderId: proposal.project.clientId,
+                content: `Selamat datang! Proposal Anda telah diterima untuk proyek ini. Silakan mulai mengerjakan milestone pertama. Jika ada pertanyaan, jangan ragu untuk bertanya di sini.`,
+              },
+            },
           },
         });
-
-        return { firstMilestoneId, firstMilestoneAmount };
       });
 
       return NextResponse.json({
         success: true,
-        message: 'Proposal diterima! Silakan danai milestone pertama untuk memulai proyek.',
-        requiresFunding: true,
-        firstMilestoneId: result.firstMilestoneId,
-        firstMilestoneAmount: result.firstMilestoneAmount,
+        message: 'Proposal diterima! Proyek siap dimulai.',
+        requiresFunding: false,
         projectId: params.id,
       });
     } else {
