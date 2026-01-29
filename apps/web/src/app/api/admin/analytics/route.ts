@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
     // Group transactions by day
     const revenueByDay: Record<string, { amount: number; fee: number }> = {};
-    transactions.forEach((t) => {
+    transactions.forEach((t: { amount: number; platformFee: number; createdAt: Date }) => {
       const day = t.createdAt.toISOString().split('T')[0];
       if (!revenueByDay[day]) {
         revenueByDay[day] = { amount: 0, fee: 0 };
