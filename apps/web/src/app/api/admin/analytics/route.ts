@@ -71,7 +71,7 @@ export async function GET(request: Request) {
 
     const templateIds = topTemplates
       .map((t: { templateId: string | null; _count: number }) => t.templateId)
-      .filter((id): id is string => id !== null);
+      .filter((id: string | null): id is string => id !== null);
 
     const templates = await prisma.template.findMany({
       where: { id: { in: templateIds } },
