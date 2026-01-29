@@ -132,7 +132,7 @@ export async function GET(request: Request) {
 
     let avgHireTimeDays = 0;
     if (projectsWithHireTime.length > 0) {
-      const totalDays = projectsWithHireTime.reduce((sum, p) => {
+      const totalDays = projectsWithHireTime.reduce((sum: number, p: { createdAt: Date; hiredAt: Date | null }) => {
         if (p.hiredAt) {
           const diffTime = Math.abs(p.hiredAt.getTime() - p.createdAt.getTime());
           const diffDays = diffTime / (1000 * 60 * 60 * 24);
