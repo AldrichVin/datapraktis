@@ -3,6 +3,35 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@datapraktis/db';
 import { authOptions } from '@/lib/auth';
 
+type ConversationParticipant = {
+  userId: string;
+  lastReadAt: Date | null;
+  user: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    role: string;
+  };
+};
+
+type ConversationWithDetails = {
+  id: string;
+  projectId: string;
+  updatedAt: Date;
+  project: {
+    id: string;
+    title: string;
+    status: string;
+  };
+  participants: ConversationParticipant[];
+  messages: {
+    id: string;
+    content: string;
+    createdAt: Date;
+    senderId: string;
+  }[];
+};
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -56,9 +85,9 @@ export async function GET() {
 
     // Get unread counts
     const conversationsWithUnread = await Promise.all(
-      conversations.map(async (conv) => {
+      conversations.map(async (conv: ConversationWithDetails) => {
         const participant = conv.participants.find(
-          (p) => p.userId === session.user.id
+          (p: ConversationParticipant) => p.userId === session.user.id
         );
 
         const unreadCount = participant?.lastReadAt
@@ -78,7 +107,7 @@ export async function GET() {
 
         // Find the other participant
         const otherParticipant = conv.participants.find(
-          (p) => p.userId !== session.user.id
+          (p: ConversationParticipant) => p.userId !== session.user.id
         );
 
         return {
