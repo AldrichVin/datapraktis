@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@datapraktis/db';
+import { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
+
+type TransactionClient = Prisma.TransactionClient;
 
 const createProposalSchema = z.object({
   coverLetter: z.string().min(50, 'Cover letter minimal 50 karakter'),
@@ -188,7 +191,7 @@ export async function PATCH(
 
     if (action === 'accept') {
       // Accept this proposal, reject others, and start work immediately
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: TransactionClient) => {
         // Update accepted proposal
         await tx.proposal.update({
           where: { id: proposalId },

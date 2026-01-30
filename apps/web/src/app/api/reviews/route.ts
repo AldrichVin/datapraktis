@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       });
 
       const avgRating =
-        allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+        allReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / allReviews.length;
 
       await prisma.analystProfile.update({
         where: { userId: revieweeId },

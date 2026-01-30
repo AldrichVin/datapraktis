@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@datapraktis/db';
+import { Prisma } from '@prisma/client';
+
+type TransactionClient = Prisma.TransactionClient;
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, AWS Lambda)
 // Recommended schedule: Every hour
@@ -47,7 +50,7 @@ export async function GET(request: Request) {
 
     for (const milestone of expiredMilestones) {
       try {
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: TransactionClient) => {
           // 1. Approve the milestone (auto-release)
           await tx.milestone.update({
             where: { id: milestone.id },
@@ -91,7 +94,7 @@ export async function GET(request: Request) {
 
           // 4. Start next milestone if available
           const currentIndex = milestone.project.milestones.findIndex(
-            (m) => m.id === milestone.id
+            (m: { id: string }) => m.id === milestone.id
           );
           const nextMilestone = milestone.project.milestones[currentIndex + 1];
 
@@ -105,7 +108,7 @@ export async function GET(request: Request) {
           // 5. Check if all milestones are approved - complete project
           const allMilestones = milestone.project.milestones;
           const approvedCount = allMilestones.filter(
-            (m) => m.status === 'APPROVED' || m.id === milestone.id
+            (m: { id: string; status: string }) => m.status === 'APPROVED' || m.id === milestone.id
           ).length;
 
           if (approvedCount === allMilestones.length) {

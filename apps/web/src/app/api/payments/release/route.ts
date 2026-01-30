@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@datapraktis/db';
+import { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
+
+type TransactionClient = Prisma.TransactionClient;
 
 const releasePaymentSchema = z.object({
   milestoneId: z.string(),
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
     const availableAt = new Date();
     availableAt.setDate(availableAt.getDate() + 5); // 5-day security hold
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       // Update transaction with security hold
       await tx.transaction.update({
         where: { id: milestone.transaction!.id },

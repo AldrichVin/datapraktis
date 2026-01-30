@@ -99,7 +99,7 @@ export async function GET(
     const isClient = project.clientId === session.user.id;
     const isAnalyst = session.user.role === 'ANALYST';
     const hasProposal = project.proposals.some(
-      (p) => p.analystId === session.user.id
+      (p: { analystId: string }) => p.analystId === session.user.id
     );
     const isHiredAnalyst = project.hiredAnalystId === session.user.id;
 
@@ -112,14 +112,14 @@ export async function GET(
     let filteredProposals = project.proposals;
     if (isAnalyst && !isClient) {
       filteredProposals = project.proposals.filter(
-        (p) => p.analystId === session.user.id
+        (p: { analystId: string }) => p.analystId === session.user.id
       );
     }
 
     // Transform milestones to rename deliverables to files for frontend consistency
-    const milestonesWithFiles = project.milestones.map((milestone) => ({
+    const milestonesWithFiles = project.milestones.map((milestone: Record<string, unknown>) => ({
       ...milestone,
-      files: (milestone as any).deliverables || [],
+      files: (milestone as Record<string, unknown>).deliverables || [],
       deliverables: undefined,
     }));
 

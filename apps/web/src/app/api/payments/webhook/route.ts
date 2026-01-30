@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@datapraktis/db';
+import { Prisma } from '@prisma/client';
 import { verifySignature, getTransactionStatus } from '@/lib/midtrans';
+
+type TransactionClient = Prisma.TransactionClient;
 
 interface MidtransNotification {
   transaction_status: string;
@@ -114,7 +117,7 @@ async function handleSuccessfulPayment(
   transactionId: string,
   paymentMethod: string
 ) {
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: TransactionClient) => {
     // Update transaction status
     await tx.transaction.update({
       where: { id: transactionId },

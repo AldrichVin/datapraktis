@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@datapraktis/db';
+import { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
+
+type TransactionClient = Prisma.TransactionClient;
 
 const updateMilestoneSchema = z.object({
   action: z.enum(['submit', 'approve', 'request_revision']),
@@ -172,7 +175,7 @@ export async function PATCH(
         );
       }
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: TransactionClient) => {
         // Approve current milestone and clear auto-release timer
         await tx.milestone.update({
           where: { id: params.id },
@@ -185,7 +188,7 @@ export async function PATCH(
 
         // Find and start next milestone
         const currentIndex = milestone.project.milestones.findIndex(
-          (m) => m.id === params.id
+          (m: { id: string }) => m.id === params.id
         );
         const nextMilestone = milestone.project.milestones[currentIndex + 1];
 
@@ -199,7 +202,7 @@ export async function PATCH(
         // Check if all milestones are approved
         const allMilestones = milestone.project.milestones;
         const approvedCount = allMilestones.filter(
-          (m) => m.status === 'APPROVED' || m.id === params.id
+          (m: { id: string; status: string }) => m.status === 'APPROVED' || m.id === params.id
         ).length;
 
         if (approvedCount === allMilestones.length) {

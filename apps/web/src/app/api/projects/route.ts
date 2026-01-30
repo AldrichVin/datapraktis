@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma, Prisma } from '@datapraktis/db';
+import { prisma } from '@datapraktis/db';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         templateId: validatedData.templateId,
         title: validatedData.title,
         description: validatedData.description,
-        templateAnswers: validatedData.templateAnswers as Prisma.InputJsonValue,
+        templateAnswers: validatedData.templateAnswers as object | undefined,
         budgetMin: validatedData.budgetMin,
         budgetMax: validatedData.budgetMax,
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,

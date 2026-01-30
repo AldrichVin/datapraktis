@@ -59,15 +59,15 @@ export async function GET() {
       ]);
 
       const activeProjects = projects.filter(
-        (p) => p.status === 'IN_PROGRESS'
+        (p: { status: string }) => p.status === 'IN_PROGRESS'
       ).length;
       const completedProjects = projects.filter(
-        (p) => p.status === 'COMPLETED'
+        (p: { status: string }) => p.status === 'COMPLETED'
       ).length;
       const totalSpent = completedSum._sum.amount || 0;
 
       // Get recent projects (limit 5)
-      const recentProjects = projects.slice(0, 5).map((p) => ({
+      const recentProjects = projects.slice(0, 5).map((p: { id: string; title: string; status: string; budgetMax: number | null; _count: { proposals: number }; createdAt: Date }) => ({
         id: p.id,
         title: p.title,
         status: p.status,
@@ -221,7 +221,7 @@ export async function GET() {
           },
           profileCompletion,
           unreadMessages,
-          activeProjects: activeProjects.map((p) => ({
+          activeProjects: activeProjects.map((p: { id: string; title: string; client: { name: string | null; image: string | null }; template: { name: string } | null; budgetMax: number | null; status: string; milestones: { id: string; status: string }[]; hiredAt: Date | null }) => ({
             id: p.id,
             title: p.title,
             client: p.client.name,
@@ -230,10 +230,10 @@ export async function GET() {
             budget: p.budgetMax,
             status: p.status,
             milestonesTotal: p.milestones.length,
-            milestonesCompleted: p.milestones.filter((m) => m.status === 'APPROVED').length,
+            milestonesCompleted: p.milestones.filter((m: { status: string }) => m.status === 'APPROVED').length,
             hiredAt: p.hiredAt?.toISOString(),
           })),
-          availableProjects: availableProjects.map((p) => ({
+          availableProjects: availableProjects.map((p: { id: string; title: string; client: { name: string | null }; budgetMax: number | null; deadline: Date | null; createdAt: Date }) => ({
             id: p.id,
             title: p.title,
             client: p.client.name,
